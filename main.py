@@ -364,6 +364,13 @@ if __name__ == "__main__":
         print("❌ 缺少 RENEW_URL")
         sys.exit(1)
 
+    # 第一次执行
     is_success, result_message = renew_host2play(renew_url, proxy_url)
+    # 如果失败，再重试1次
+    if not is_success:
+        print("⚠️ 首次执行失败，开始重试 1 次...")
+        is_success, result_message = renew_host2play(renew_url, proxy_url)
+
+    # 发送通知
     send_tg_message(tg_token, tg_chat_id, result_message)
     if not is_success: sys.exit(1)
