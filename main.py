@@ -55,7 +55,7 @@ class RecaptchaAudioSolver:
     def solve(self, bframe):
         self.log("🎧 启动过盾流程...")
         try:
-            audio_btn = bframe.ele('#recaptcha-audio-button', timeout=3)
+            audio_btn = bframe.ele('#recaptcha-audio-button', timeout=5)
             if audio_btn:
                 self.page.actions.move_to(audio_btn, duration=random.uniform(0.5, 1.2))
                 time.sleep(random.uniform(0.2, 0.5))
@@ -80,7 +80,7 @@ class RecaptchaAudioSolver:
                         self.log(f"⛔ Google 拒绝提供音频: {error_txt}")
                 
                 self.log(f"⚠️ 第 {attempt+1} 次获取TOKEN失败，尝试点击刷新...")
-                reload_btn = bframe.ele('#recaptcha-reload-button', timeout=2)
+                reload_btn = bframe.ele('#recaptcha-reload-button', timeout=5)
                 if reload_btn:
                     self.page.actions.move_to(reload_btn, duration=random.uniform(0.3, 0.8))
                     time.sleep(random.uniform(0.2, 0.5))
