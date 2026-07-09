@@ -209,7 +209,7 @@ def renew_host2play(url, proxy_url=None):
         """)
 
         print(f"🌐 访问续期目标网址: {url}")
-        page.get(f"https://cwp-hk.kof99zip.pp.ua/{url}", retry=3)
+        page.get(url, retry=3)
         time.sleep(random.uniform(5, 8))
 
         print("🧹 清理遮挡元素...")
