@@ -63,6 +63,16 @@ class RecaptchaAudioSolver:
                 with open("debug_bframe.html","w",encoding="utf-8") as f:
                     f.write(bframe.html)
                 self.log("🖱️ 点击了音频破解按钮")
+                try:
+                    with open(
+                        "debug_bframe_after_audio.html",
+                        "w",
+                        encoding="utf-8"
+                    ) as f:
+                        f.write(bframe.html)
+                    self.log("✅ 已保存 audio 后 bframe HTML")
+                except Exception as e:
+                    self.log(f"保存bframe失败: {e}")
             else:
                 self.log("❌ 未找到验证按钮，可能被 Google 屏蔽")
                 return False
@@ -172,6 +182,11 @@ class RecaptchaAudioSolver:
 
             for l in links:
                 href = l.attr('href')
+                text = l.text
+
+                self.log(
+                    f"链接: text=[{text}] href=[{href}]"
+                )
 
                 if href and (
                     ".mp3" in href
