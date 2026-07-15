@@ -60,6 +60,8 @@ class RecaptchaAudioSolver:
                 self.page.actions.move_to(audio_btn, duration=random.uniform(0.5, 1.2))
                 time.sleep(random.uniform(0.2, 0.5))
                 audio_btn.click()
+                with open("debug_bframe.html","w",encoding="utf-8") as f:
+                    f.write(bframe.html)
                 self.log("🖱️ 点击了音频破解按钮")
             else:
                 self.log("❌ 未找到验证按钮，可能被 Google 屏蔽")
@@ -148,17 +150,52 @@ class RecaptchaAudioSolver:
 
     def get_audio_source(self, bframe):
         try:
-            link1 = bframe.ele('.rc-audiochallenge-ndownload-link', timeout=5)
-            if link1: return link1.attr('href')
-            
-            link2 = bframe.ele('xpath://a[contains(@href, ".mp3")]', timeout=5)
-            if link2: return link2.attr('href')
-            
-            audio_src = bframe.ele('#audio-source', timeout=5)
-            if audio_src: return audio_src.attr('src')
-            
+            self.log("🔍 开始扫描audio元素...")
+
+            # 1. 查 audio 标签
+            audios = bframe.eles('tag:audio')
+
+            self.log(f"找到 audio 标签数量: {len(audios)}")
+
+            for a in audios:
+                src = a.attr('src')
+                self.log(f"audio src: {src}")
+
+                if src:
+                    return src
+
+
+            # 2. 查所有包含 mp3 的链接
+            links = bframe.eles('tag:a')
+
+            self.log(f"找到链接数量: {len(links)}")
+
+            for l in links:
+                href = l.attr('href')
+
+                if href and (
+                    ".mp3" in href
+                    or "audio" in href
+                ):
+                    self.log(f"发现可能音频链接: {href[:100]}")
+                    return href
+
+
+            # 3. 查页面源码关键词
+            html = bframe.html
+
+            if ".mp3" in html:
+                self.log("源码里面发现mp3")
+
+            if "audio" in html:
+                self.log("源码里面发现audio")
+
+
             return None
-        except:
+
+
+        except Exception as e:
+            self.log(f"扫描audio异常: {e}")
             return None
 
 # ==============================================================================
