@@ -72,10 +72,13 @@ class RecaptchaAudioSolver:
                 src = self.get_audio_source(bframe)
                 if src:
                     break
-                self.log(f"⚠️ 第 {attempt+1} 次没有检测到音频链接，等待10秒重新检查...")
+                self.log(
+                    f"⚠️ 第 {attempt+1} 次没有检测到音频链接，等待10秒重新检查..."
+                )
                 time.sleep(10)
                 src = self.get_audio_source(bframe)
                 if src:
+                    self.log(f"🎵 获取到音频地址: {src[:100]}")
                     break
                 err_msg = bframe.ele(
                     '.rc-audiochallenge-error-message',
@@ -85,15 +88,18 @@ class RecaptchaAudioSolver:
                     error_txt = err_msg.text
                     if error_txt:
                         self.log(f"⚠️ Google提示: {error_txt}")
-                        if not src:
-                            self.log("❌ 最终无法获取链接 (IP 可能被暂时风控)")
-                            return False
-
+                        break
+            # ===== 循环结束后统一判断 =====
+            if not src:
+                self.log("❌ 最终无法获取音频链接")
+                return False
+            if not isinstance(src, str) or not src.startswith("http"):
+                self.log(f"❌ 音频地址异常: {src}")
+                return False
             self.log("📥 正在下载并处理音频数据...")
             r = requests.get(src, timeout=15)
             with open("audio.mp3", 'wb') as f:
                 f.write(r.content)
-
             try:
                 sound = AudioSegment.from_mp3("audio.mp3")
                 sound.export("audio.wav", format="wav")
