@@ -65,31 +65,29 @@ class RecaptchaAudioSolver:
                 self.log("❌ 未找到验证按钮，可能被 Google 屏蔽")
                 return False
 
-            time.sleep(random.uniform(3, 5))
+            time.sleep(random.uniform(6, 10))
 
             src = None
             for attempt in range(3):
                 src = self.get_audio_source(bframe)
                 if src:
                     break
-                
-                err_msg = bframe.ele('.rc-audiochallenge-error-message', timeout=1)
+                self.log(f"⚠️ 第 {attempt+1} 次没有检测到音频链接，等待10秒重新检查...")
+                time.sleep(10)
+                src = self.get_audio_source(bframe)
+                if src:
+                    break
+                err_msg = bframe.ele(
+                    '.rc-audiochallenge-error-message',
+                    timeout=2
+                )
                 if err_msg and err_msg.states.is_displayed:
                     error_txt = err_msg.text
-                    if error_txt and "try again" not in error_txt.lower():
-                        self.log(f"⛔ Google 拒绝提供音频: {error_txt}")
-                
-                self.log(f"⚠️ 第 {attempt+1} 次获取TOKEN失败，尝试点击刷新...")
-                reload_btn = bframe.ele('#recaptcha-reload-button', timeout=2)
-                if reload_btn:
-                    self.page.actions.move_to(reload_btn, duration=random.uniform(0.3, 0.8))
-                    time.sleep(random.uniform(0.2, 0.5))
-                    reload_btn.click()
-                    time.sleep(random.uniform(4, 7))
-
-            if not src:
-                self.log("❌ 最终无法获取链接 (IP 可能被暂时风控)")
-                return False
+                    if error_txt:
+                        self.log(f"⚠️ Google提示: {error_txt}")
+                        if not src:
+                            self.log("❌ 最终无法获取链接 (IP 可能被暂时风控)")
+                            return False
 
             self.log("📥 正在下载并处理音频数据...")
             r = requests.get(src, timeout=15)
@@ -144,13 +142,13 @@ class RecaptchaAudioSolver:
 
     def get_audio_source(self, bframe):
         try:
-            link1 = bframe.ele('.rc-audiochallenge-ndownload-link', timeout=0.5)
+            link1 = bframe.ele('.rc-audiochallenge-ndownload-link', timeout=5)
             if link1: return link1.attr('href')
             
-            link2 = bframe.ele('xpath://a[contains(@href, ".mp3")]', timeout=0.5)
+            link2 = bframe.ele('xpath://a[contains(@href, ".mp3")]', timeout=5)
             if link2: return link2.attr('href')
             
-            audio_src = bframe.ele('#audio-source', timeout=0.5)
+            audio_src = bframe.ele('#audio-source', timeout=5)
             if audio_src: return audio_src.attr('src')
             
             return None
@@ -183,7 +181,8 @@ def renew_host2play(url, proxy_url=None):
         co.set_argument('--disable-popup-blocking')
         co.set_argument('--window-size=1280,720')
         
-        user_data_dir = tempfile.mkdtemp()
+        user_data_dir = "/tmp/host2-chrome-profile"
+        os.makedirs(user_data_dir, exist_ok=True)
         co.set_user_data_path(user_data_dir)
         co.auto_port() 
         co.headless(False)
