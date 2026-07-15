@@ -60,58 +60,42 @@ class RecaptchaAudioSolver:
                 self.page.actions.move_to(audio_btn, duration=random.uniform(0.5, 1.2))
                 time.sleep(random.uniform(0.2, 0.5))
                 audio_btn.click()
-                with open("debug_bframe.html","w",encoding="utf-8") as f:
-                    f.write(bframe.html)
                 self.log("🖱️ 点击了音频破解按钮")
-                try:
-                    with open(
-                        "debug_bframe_after_audio.html",
-                        "w",
-                        encoding="utf-8"
-                    ) as f:
-                        f.write(bframe.html)
-                    self.log("✅ 已保存 audio 后 bframe HTML")
-                except Exception as e:
-                    self.log(f"保存bframe失败: {e}")
             else:
                 self.log("❌ 未找到验证按钮，可能被 Google 屏蔽")
                 return False
 
-            time.sleep(random.uniform(6, 10))
+            time.sleep(random.uniform(3, 5))
 
             src = None
             for attempt in range(3):
                 src = self.get_audio_source(bframe)
                 if src:
                     break
-                self.log(
-                    f"⚠️ 第 {attempt+1} 次没有检测到音频链接，等待10秒重新检查..."
-                )
-                time.sleep(10)
-                src = self.get_audio_source(bframe)
-                if src:
-                    self.log(f"🎵 获取到音频地址: {src[:100]}")
-                    break
-                err_msg = bframe.ele(
-                    '.rc-audiochallenge-error-message',
-                    timeout=2
-                )
+                
+                err_msg = bframe.ele('.rc-audiochallenge-error-message', timeout=1)
                 if err_msg and err_msg.states.is_displayed:
                     error_txt = err_msg.text
-                    if error_txt:
-                        self.log(f"⚠️ Google提示: {error_txt}")
-                        break
-            # ===== 循环结束后统一判断 =====
+                    if error_txt and "try again" not in error_txt.lower():
+                        self.log(f"⛔ Google 拒绝提供音频: {error_txt}")
+                
+                self.log(f"⚠️ 第 {attempt+1} 次获取TOKEN失败，尝试点击刷新...")
+                reload_btn = bframe.ele('#recaptcha-reload-button', timeout=2)
+                if reload_btn:
+                    self.page.actions.move_to(reload_btn, duration=random.uniform(0.3, 0.8))
+                    time.sleep(random.uniform(0.2, 0.5))
+                    reload_btn.click()
+                    time.sleep(random.uniform(4, 7))
+
             if not src:
-                self.log("❌ 最终无法获取音频链接")
+                self.log("❌ 最终无法获取链接 (IP 可能被暂时风控)")
                 return False
-            if not isinstance(src, str) or not src.startswith("http"):
-                self.log(f"❌ 音频地址异常: {src}")
-                return False
+
             self.log("📥 正在下载并处理音频数据...")
             r = requests.get(src, timeout=15)
             with open("audio.mp3", 'wb') as f:
                 f.write(r.content)
+
             try:
                 sound = AudioSegment.from_mp3("audio.mp3")
                 sound.export("audio.wav", format="wav")
@@ -160,57 +144,17 @@ class RecaptchaAudioSolver:
 
     def get_audio_source(self, bframe):
         try:
-            self.log("🔍 开始扫描audio元素...")
-
-            # 1. 查 audio 标签
-            audios = bframe.eles('tag:audio')
-
-            self.log(f"找到 audio 标签数量: {len(audios)}")
-
-            for a in audios:
-                src = a.attr('src')
-                self.log(f"audio src: {src}")
-
-                if src:
-                    return src
-
-
-            # 2. 查所有包含 mp3 的链接
-            links = bframe.eles('tag:a')
-
-            self.log(f"找到链接数量: {len(links)}")
-
-            for l in links:
-                href = l.attr('href')
-                text = l.text
-
-                self.log(
-                    f"链接: text=[{text}] href=[{href}]"
-                )
-
-                if href and (
-                    ".mp3" in href
-                    or "audio" in href
-                ):
-                    self.log(f"发现可能音频链接: {href[:100]}")
-                    return href
-
-
-            # 3. 查页面源码关键词
-            html = bframe.html
-
-            if ".mp3" in html:
-                self.log("源码里面发现mp3")
-
-            if "audio" in html:
-                self.log("源码里面发现audio")
-
-
+            link1 = bframe.ele('.rc-audiochallenge-ndownload-link', timeout=0.5)
+            if link1: return link1.attr('href')
+            
+            link2 = bframe.ele('xpath://a[contains(@href, ".mp3")]', timeout=0.5)
+            if link2: return link2.attr('href')
+            
+            audio_src = bframe.ele('#audio-source', timeout=0.5)
+            if audio_src: return audio_src.attr('src')
+            
             return None
-
-
-        except Exception as e:
-            self.log(f"扫描audio异常: {e}")
+        except:
             return None
 
 # ==============================================================================
@@ -239,8 +183,7 @@ def renew_host2play(url, proxy_url=None):
         co.set_argument('--disable-popup-blocking')
         co.set_argument('--window-size=1280,720')
         
-        user_data_dir = "/tmp/host2-chrome-profile"
-        os.makedirs(user_data_dir, exist_ok=True)
+        user_data_dir = tempfile.mkdtemp()
         co.set_user_data_path(user_data_dir)
         co.auto_port() 
         co.headless(False)
@@ -421,13 +364,11 @@ if __name__ == "__main__":
         print("❌ 缺少 RENEW_URL")
         sys.exit(1)
 
-    # 第一次执行
+    # 执行一次
     is_success, result_message = renew_host2play(renew_url, proxy_url)
-    # 如果失败，再重试1次
-    if not is_success:
-        print("⚠️ 首次执行失败，开始重试 1 次...")
-        is_success, result_message = renew_host2play(renew_url, proxy_url)
 
     # 发送通知
     send_tg_message(tg_token, tg_chat_id, result_message)
-    if not is_success: sys.exit(1)
+
+    if not is_success:
+        sys.exit(1)
