@@ -55,7 +55,7 @@ class RecaptchaAudioSolver:
     def solve(self, bframe):
         self.log("🎧 启动过盾流程...")
         try:
-            audio_btn = bframe.ele('#recaptcha-audio-button', timeout=3)
+            audio_btn = bframe.ele('#recaptcha-audio-button', timeout=5)
             if audio_btn:
                 self.page.actions.move_to(audio_btn, duration=random.uniform(0.5, 1.2))
                 time.sleep(random.uniform(0.2, 0.5))
@@ -73,14 +73,14 @@ class RecaptchaAudioSolver:
                 if src:
                     break
                 
-                err_msg = bframe.ele('.rc-audiochallenge-error-message', timeout=1)
+                err_msg = bframe.ele('.rc-audiochallenge-error-message', timeout=5)
                 if err_msg and err_msg.states.is_displayed:
                     error_txt = err_msg.text
                     if error_txt and "try again" not in error_txt.lower():
                         self.log(f"⛔ Google 拒绝提供音频: {error_txt}")
                 
                 self.log(f"⚠️ 第 {attempt+1} 次获取TOKEN失败，尝试点击刷新...")
-                reload_btn = bframe.ele('#recaptcha-reload-button', timeout=2)
+                reload_btn = bframe.ele('#recaptcha-reload-button', timeout=5)
                 if reload_btn:
                     self.page.actions.move_to(reload_btn, duration=random.uniform(0.3, 0.8))
                     time.sleep(random.uniform(0.2, 0.5))
@@ -114,11 +114,11 @@ class RecaptchaAudioSolver:
                     self.log("❌ 语音识别失败 (可能音频含糊或引擎无响应)")
                     return False
 
-            input_box = bframe.ele('#audio-response', timeout=2)
+            input_box = bframe.ele('#audio-response', timeout=5)
             if input_box:
                 self.human_type(input_box, key_text)
                 
-                verify_btn = bframe.ele('#recaptcha-verify-button', timeout=2)
+                verify_btn = bframe.ele('#recaptcha-verify-button', timeout=5)
                 if verify_btn:
                     self.page.actions.move_to(verify_btn, duration=random.uniform(0.5, 1.0))
                     time.sleep(random.uniform(0.2, 0.5))
@@ -126,7 +126,7 @@ class RecaptchaAudioSolver:
                     self.log("🚀 提交验证...")
                     time.sleep(4)
                     
-                    err_check = bframe.ele('.rc-audiochallenge-error-message', timeout=1)
+                    err_check = bframe.ele('.rc-audiochallenge-error-message', timeout=5)
                     if err_check and err_check.states.is_displayed:
                         self.log(f"❌ 验证未通过: {err_check.text}")
                         return False
@@ -144,13 +144,13 @@ class RecaptchaAudioSolver:
 
     def get_audio_source(self, bframe):
         try:
-            link1 = bframe.ele('.rc-audiochallenge-ndownload-link', timeout=0.5)
+            link1 = bframe.ele('.rc-audiochallenge-ndownload-link', timeout=5)
             if link1: return link1.attr('href')
             
-            link2 = bframe.ele('xpath://a[contains(@href, ".mp3")]', timeout=0.5)
+            link2 = bframe.ele('xpath://a[contains(@href, ".mp3")]', timeout=5)
             if link2: return link2.attr('href')
             
-            audio_src = bframe.ele('#audio-source', timeout=0.5)
+            audio_src = bframe.ele('#audio-source', timeout=5)
             if audio_src: return audio_src.attr('src')
             
             return None
@@ -221,7 +221,7 @@ def renew_host2play(url, proxy_url=None):
         """)
         time.sleep(2)
 
-        consent_btn = page.ele('tag:button@@text():Consent', timeout=2)
+        consent_btn = page.ele('tag:button@@text():Consent', timeout=5)
         if consent_btn:
             consent_btn.click()
             time.sleep(3)
@@ -236,7 +236,7 @@ def renew_host2play(url, proxy_url=None):
         time.sleep(random.uniform(1.0, 2.0))
 
         print("🖱️ 打开续期弹窗...")
-        renew_btn1 = page.ele('xpath://button[contains(text(), "Renew server")]', timeout=3)
+        renew_btn1 = page.ele('xpath://button[contains(text(), "Renew server")]', timeout=5)
         if renew_btn1:
             try:
                 renew_btn1.click() 
@@ -247,11 +247,11 @@ def renew_host2play(url, proxy_url=None):
         time.sleep(3)
 
         for _ in range(8):
-            if page.ele('text:Expires in:', timeout=0.5) or page.ele('text:Deletes on:', timeout=0.5):
+            if page.ele('text:Expires in:', timeout=5) or page.ele('text:Deletes on:', timeout=5):
                 break
             time.sleep(1)
 
-        renew_btn2 = page.ele('xpath://button[contains(text(), "Renew server")]', timeout=2)
+        renew_btn2 = page.ele('xpath://button[contains(text(), "Renew server")]', timeout=5)
         if renew_btn2:
             try:
                 renew_btn2.click()
@@ -268,7 +268,7 @@ def renew_host2play(url, proxy_url=None):
             anchor_box = None
             
             for _ in range(20):
-                anchor_box = anchor_frame.ele('#recaptcha-anchor', timeout=1)
+                anchor_box = anchor_frame.ele('#recaptcha-anchor', timeout=5)
                 if anchor_box:
                     break
                 time.sleep(1)
@@ -315,7 +315,7 @@ def renew_host2play(url, proxy_url=None):
 
         if solved_captcha:
             print("🚀 验证完成，点击最终 Renew...")
-            final_btn = page.ele('xpath://button[normalize-space(text())="Renew"]', timeout=3)
+            final_btn = page.ele('xpath://button[normalize-space(text())="Renew"]', timeout=5)
             if final_btn:
                 try:
                     final_btn.click()
